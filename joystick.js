@@ -33,6 +33,20 @@ class VirtualJoyStick {
       }
     }
     this.threshold = 5; // minimum amount of movement from center to direction
+    // move left {x:-1,y: 0}
+    // move right{x:1, y:0]} 
+    // move up: {x:0, y:-1}
+    // move down{x:0, y:1}
+    // dont'move {x:0, y:0}    
+    this.move = {
+      x: 0,
+      y: 0,
+    }
+    // diagonal direction
+    this.direction = {
+      x: 0,
+      y: 0,
+    }
     this.createJoystickBg();
     this.createJoystickElement();
   }
@@ -90,7 +104,6 @@ class VirtualJoyStick {
         startX = e.changedTouches[0].screenX;
         startY = e.changedTouches[0].screenY;
 
-        console.log(e);
         document.body.style.overflow = "hidden";
         circle.style.visibility = "visible";
         circle.style.top = e.changedTouches[0].pageY - smallCircleRadius - touchRadius.y + "px";
@@ -107,9 +120,8 @@ class VirtualJoyStick {
           y: e.changedTouches[0].pageY - smallCircleRadius - touchRadius.y,
         }
         const d = distance(this.touchStartCenter, {x: smallCircle.x, y: smallCircle.y});
-
+        const angle = Math.atan2(smallCircle.y - this.touchStartCenter.y, smallCircle.x - this.touchStartCenter.x);
         if (d > bigCircleRadius) {
-          const angle = Math.atan2(smallCircle.y - this.touchStartCenter.y, smallCircle.x - this.touchStartCenter.x);
           const smallCircleX = this.touchStartCenter.x + bigCircleRadius * Math.cos(angle);
           const smallCircleY = this.touchStartCenter.y + bigCircleRadius * Math.sin(angle);
 
@@ -125,39 +137,68 @@ class VirtualJoyStick {
         const deltaX = endX - startX;
         const deltaY = endY - startY;
 
-        // [x, y]
-        let move = [0, 0];
+        
         // moved horizontally
         if (Math.abs(deltaX) > Math.abs(deltaY) + this.threshold) {
-          move[0] = deltaX < 0 ? -1 : 1;
+           if (deltaX < 0) {
+            this.move.x = -1;
+            this.move[1] = 0;
+            this.direction.x = -1;
+            this.direction.y = deltaY > this.threshold ? -1 : deltaY < -this.threshold ? 1 : 0;
+          } else {
+            this.move.x = 1;
+            this.move.y = 0;
+            this.direction.x = 1;
+            this.direction.y = deltaY > this.threshold ? -1 : deltaY < -this.threshold ? 1 : 0;
+
+          }
         }
         // moved vertically
         else if (Math.abs(deltaX) + this.threshold < Math.abs(deltaY)) {
-          move[1] = deltaY < 0 ? -1 : 1;
-        } else {
-          move = [0, 0];
+          if (deltaY < 0) {
+            this.move.y = -1;
+            this.move.x = 0;
+            this.direction.y = -1;
+            this.direction.x = deltaX > this.threshold ? -1 : deltaX < -this.threshold ? 1 : 0;
+
+          } else {
+            this.move.y = 1;
+            this.move.x = 0;
+            this.direction.y = 1;
+            this.direction.x = deltaX > this.threshold ? -1 : deltaX < -this.threshold ? 1 : 0;
+          }
+        } 
+        else {
+          this.move.x = 0;
+          this.move.y = 0;
+          this.direction.x = 0;
+          this.direction.y = 0;
         }
 
-        if (move[0] > 0) {
+        if (this.move.x > 0) {
           swipe.innerText = "right";
           window.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowRight"}));
         }
-        if (move[0] < 0) {
+        if (this.move.x < 0) {
           swipe.innerText = "left";
           window.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowLeft"}));
         }
-        if (move[1] > 0) {
+        if (this.move.y > 0) {
           swipe.innerText = "down";
           window.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowDown"}));
         }
-        if (move[1] < 0) {
+        if (this.move.y < 0) {
           swipe.innerText = "up";
           window.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowUp"}));
         }
-        if (move[0] === 0 && move[1] === 0) {
+        if (this.move.x === 0 && this.move.y === 0) {
           swipe.innerText = "center";
           // window.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowUp"}));
         }
+        console.log({
+          move: this.move,
+          direction: this.direction,
+        })
       });
       document.addEventListener('touchend', e => {
         document.body.style.overflow = "auto";
