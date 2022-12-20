@@ -75,6 +75,8 @@ class VirtualJoyStick {
         x: 0,
         y: 0,
       }
+      let startX = 0;
+      let startY = 0;
       document.addEventListener('touchstart', e => {
         touchRadius.x = e.touches[0].radiusX;
         touchRadius.y = e.touches[0].radiusY;
@@ -84,6 +86,9 @@ class VirtualJoyStick {
 
         this.touchStartCenter.x = touchStartX;
         this.touchStartCenter.y = touchStartY;
+
+        startX = e.changedTouches[0].screenX;
+        startY = e.changedTouches[0].screenY;
 
         console.log(e);
         document.body.style.overflow = "hidden";
@@ -103,32 +108,22 @@ class VirtualJoyStick {
         }
         const d = distance(this.touchStartCenter, {x: smallCircle.x, y: smallCircle.y});
 
-        if (d > 35) {
+        if (d > bigCircleRadius) {
           const angle = Math.atan2(smallCircle.y - this.touchStartCenter.y, smallCircle.x - this.touchStartCenter.x);
-          // Calculate the new x and y coordinates of the element
-          const elementX = this.touchStartCenter.x + 40 * Math.cos(angle);
-          const elementY = this.touchStartCenter.y + 40 * Math.sin(angle);
+          const smallCircleX = this.touchStartCenter.x + bigCircleRadius * Math.cos(angle);
+          const smallCircleY = this.touchStartCenter.y + bigCircleRadius * Math.sin(angle);
 
-          // Update the position of the element
-          circle.style.left = elementX + "px";
-          circle.style.top = elementY + "px";
+          circle.style.left = smallCircleX + "px";
+          circle.style.top = smallCircleY + "px";
         } else {
           circle.style.top = smallCircle.y + "px";
           circle.style.left = smallCircle.x + "px";
         }
 
-        // if (d <= 35) {
-        //   circle.style.top = e.changedTouches[0].pageY - 25 - 11.5 + "px";
-        //   circle.style.left = e.changedTouches[0].pageX - 25 - 11.5+ "px";
-        // } else {
-        //   circle.style.top = circle.style.top - 35 + "px";
-        //   circle.style.left = circle.style.left - 35 + "px";
-        // }
-
         const endX = e.changedTouches[0].screenX;
         const endY = e.changedTouches[0].screenY;
-        const deltaX = endX - this.touchStartCenter.x;
-        const deltaY = endY - this.touchStartCenter.y;
+        const deltaX = endX - startX;
+        const deltaY = endY - startY;
 
         // [x, y]
         let move = [0, 0];
