@@ -1,5 +1,5 @@
-const swipe = document.getElementById("swipe");
 const circle = document.getElementById("circle");
+// const debug = document.getElementById("debug");
 
 
 const distance = function (p1, p2) {
@@ -10,9 +10,9 @@ const distance = function (p1, p2) {
 };
 
 class VirtualJoyStick {
-  constructor() {
+  constructor(options) {
+    this.options = options || {};
     this.swipe = "";
-    this.direction = [0, 0]; // [x, y]
     this.touchStartCenter = {
       x: 0,
       y: 0,
@@ -32,24 +32,22 @@ class VirtualJoyStick {
         position: "absolute",
       }
     }
-    this.threshold = 5; // minimum amount of movement from center to direction
-    // move left {x:-1,y: 0}
-    // move right{x:1, y:0]} 
-    // move up: {x:0, y:-1}
-    // move down{x:0, y:1}
-    // dont'move {x:0, y:0}    
+    this.threshold = 5;
     this.move = {
       x: 0,
       y: 0,
     }
+    this.readableDirection = "center";
     // diagonal direction
     this.direction = {
       x: 0,
       y: 0,
     }
+    this.isTouching = false;
     this.createJoystickBg();
     this.createJoystickElement();
   }
+
   createJoystickElement () {
     const div = document.createElement("div");
     div.setAttribute("id", this.el.id);
@@ -64,6 +62,7 @@ class VirtualJoyStick {
     div.style.visibility = "hidden";
     document.body.appendChild(div);
   }
+
   createJoystickBg () {
     const div = document.createElement("div");
     div.setAttribute("id", "joy_bg");
@@ -78,7 +77,18 @@ class VirtualJoyStick {
     div.style.visibility = "hidden";
     document.body.appendChild(div);
   }
+
+  changeBodyStyle() {
+    document.body.style.touchAction = "none";
+    document.body.style.position = "relative";
+  }
+
   init () {
+    this.changeBodyStyle();
+    if (this.options.debug) {
+      this.createDebugEl();
+    }
+    this.showDebug();
     const circle = document.getElementById("circle");
     const circleBg = document.getElementById("joy_bg");
    
@@ -91,7 +101,9 @@ class VirtualJoyStick {
       }
       let startX = 0;
       let startY = 0;
+
       document.addEventListener('touchstart', e => {
+        this.isTouching = true;
         touchRadius.x = e.touches[0].radiusX;
         touchRadius.y = e.touches[0].radiusY;
 
@@ -112,9 +124,13 @@ class VirtualJoyStick {
         circleBg.style.visibility = "visible";
         circleBg.style.top = touchStartY + "px";
         circleBg.style.left = touchStartX + "px";
-          
+
+        this.dispatchEvent();
+        this.showDebug();
+        
       })
-      addEventListener('touchmove', (e) => {
+
+      document.addEventListener('touchmove', (e) => {
         const smallCircle = {
           x: e.changedTouches[0].pageX - smallCircleRadius - touchRadius.x,
           y: e.changedTouches[0].pageY - smallCircleRadius - touchRadius.y,
@@ -137,35 +153,29 @@ class VirtualJoyStick {
         const deltaX = endX - startX;
         const deltaY = endY - startY;
 
-        
         // moved horizontally
         if (Math.abs(deltaX) > Math.abs(deltaY) + this.threshold) {
+          this.direction.x = deltaX > this.threshold ? 1 : deltaX < -this.threshold ? -1 : 0;
+          this.direction.y = deltaY > this.threshold ? 1 : deltaY < -this.threshold ? -1 : 0;
            if (deltaX < 0) {
             this.move.x = -1;
-            this.move[1] = 0;
-            this.direction.x = -1;
-            this.direction.y = deltaY > this.threshold ? -1 : deltaY < -this.threshold ? 1 : 0;
+            this.move.y = 0;
           } else {
             this.move.x = 1;
             this.move.y = 0;
-            this.direction.x = 1;
-            this.direction.y = deltaY > this.threshold ? -1 : deltaY < -this.threshold ? 1 : 0;
-
           }
         }
         // moved vertically
         else if (Math.abs(deltaX) + this.threshold < Math.abs(deltaY)) {
+          this.direction.y = deltaY > this.threshold ? -1 : deltaY < -this.threshold ? 1 : 0;
+          this.direction.x = deltaX > this.threshold ? -1 : deltaX < -this.threshold ? 1 : 0;
           if (deltaY < 0) {
             this.move.y = -1;
             this.move.x = 0;
-            this.direction.y = -1;
-            this.direction.x = deltaX > this.threshold ? -1 : deltaX < -this.threshold ? 1 : 0;
 
           } else {
             this.move.y = 1;
             this.move.x = 0;
-            this.direction.y = 1;
-            this.direction.x = deltaX > this.threshold ? -1 : deltaX < -this.threshold ? 1 : 0;
           }
         } 
         else {
@@ -176,40 +186,77 @@ class VirtualJoyStick {
         }
 
         if (this.move.x > 0) {
-          swipe.innerText = "right";
+          this.readableDirection = "right";
           window.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowRight"}));
         }
         if (this.move.x < 0) {
-          swipe.innerText = "left";
+          this.readableDirection = "left";
           window.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowLeft"}));
         }
         if (this.move.y > 0) {
-          swipe.innerText = "down";
+          this.readableDirection = "down";
           window.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowDown"}));
         }
         if (this.move.y < 0) {
-          swipe.innerText = "up";
+          this.readableDirection = "up";
           window.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowUp"}));
         }
         if (this.move.x === 0 && this.move.y === 0) {
-          swipe.innerText = "center";
+          this.readableDirection = "center";
           // window.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowUp"}));
         }
-        console.log({
-          move: this.move,
-          direction: this.direction,
-        })
+        this.dispatchEvent();
+        this.showDebug();
       });
+
       document.addEventListener('touchend', e => {
         document.body.style.overflow = "auto";
         circle.style.visibility = "hidden"
         circleBg.style.visibility = "hidden"
-
+        this.isTouching = false;
+        this.dispatchEvent();
+        this.showDebug();
       })
     }
-    
+  }
+
+  createDebugEl() {
+    const div = document.createElement("div");
+    div.setAttribute("id", "debug");
+    document.body.appendChild(div);
+  }
+
+  showDebug() {
+    const debug = document.getElementById("debug");
+    if (debug && this.options.debug === true) {
+      let out = "";
+      for (const prop in this.eventPayload) {
+        const p = document.createElement("p");
+        out += `<p>${prop}: ${JSON.stringify(this.eventPayload[prop])}</p>`;
+      }
+      debug.innerHTML = out;
+    }
+  }
+
+  dispatchEvent() {
+    window.dispatchEvent(new CustomEvent("v-joystick", {detail: this.eventPayload}));
+  }
+
+  get eventPayload() {
+    return {
+      move: this.move,
+      direction: this.direction,
+      isTouching: this.isTouching,
+      readableDirection: this.readableDirection,
+    };
   }
 }
 
-const joy = new VirtualJoyStick();
+const joy = new VirtualJoyStick({
+  debug: true
+});
 joy.init();
+
+window.addEventListener("v-joystick", (e) => {
+  //
+})
