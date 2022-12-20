@@ -69,38 +69,61 @@ class VirtualJoyStick {
     const circleBg = document.getElementById("joy_bg");
    
     if (circle) {
+      const bigCircleRadius = 35;
+      const smallCircleRadius = 25;
+      const touchRadius = {
+        x: 0,
+        y: 0,
+      }
       document.addEventListener('touchstart', e => {
-        this.touchStartCenter.x = e.changedTouches[0].pageX - 35 - 11.5;
-        this.touchStartCenter.y = e.changedTouches[0].pageY - 35 - 11.5;
+        touchRadius.x = e.touches[0].radiusX;
+        touchRadius.y = e.touches[0].radiusY;
+
+        const touchStartX = e.changedTouches[0].pageX - bigCircleRadius - touchRadius.x;
+        const touchStartY = e.changedTouches[0].pageY - bigCircleRadius - touchRadius.y;
+
+        this.touchStartCenter.x = touchStartX;
+        this.touchStartCenter.y = touchStartY;
+
         console.log(e);
         document.body.style.overflow = "hidden";
         circle.style.visibility = "visible";
-        circle.style.top = e.changedTouches[0].pageY - 25 - 11.5 + "px";
-        circle.style.left = e.changedTouches[0].pageX - 25 - 11.5 + "px";
+        circle.style.top = e.changedTouches[0].pageY - smallCircleRadius - touchRadius.y + "px";
+        circle.style.left = e.changedTouches[0].pageX - smallCircleRadius - touchRadius.x + "px";
         
         circleBg.style.visibility = "visible";
-        circleBg.style.top = this.touchStartCenter.y + "px";
-        circleBg.style.left = this.touchStartCenter.x + "px";
-
-        this.touchStartCenter.x = e.changedTouches[0].screenX;
-        this.touchStartCenter.y = e.changedTouches[0].screenY
+        circleBg.style.top = touchStartY + "px";
+        circleBg.style.left = touchStartX + "px";
           
       })
       addEventListener('touchmove', (e) => {
-        const d = distance(this.touchStartCenter, {x: e.changedTouches[0].screenX, y: e.changedTouches[0].screenY});
-        const radians = Math.atan2(e.changedTouches[0].screenY, e.changedTouches[0].screenX);
-        const box = circleBg.getBoundingClientRect();
-
-        const x2 = this.touchEndCenter.x ** 2;
-        const y2 = this.touchEndCenter.y ** 2;
-
-        if (d <= 35) {
-          circle.style.top = e.changedTouches[0].pageY - 25 - 11.5 + "px";
-          circle.style.left = e.changedTouches[0].pageX - 25 - 11.5+ "px";
-        } else {
-          circle.style.top = circle.style.top - 35 + "px";
-          circle.style.left = circle.style.left - 35 + "px";
+        const smallCircle = {
+          x: e.changedTouches[0].pageX - smallCircleRadius - touchRadius.x,
+          y: e.changedTouches[0].pageY - smallCircleRadius - touchRadius.y,
         }
+        const d = distance(this.touchStartCenter, {x: smallCircle.x, y: smallCircle.y});
+
+        if (d > 35) {
+          const angle = Math.atan2(smallCircle.y - this.touchStartCenter.y, smallCircle.x - this.touchStartCenter.x);
+          // Calculate the new x and y coordinates of the element
+          const elementX = this.touchStartCenter.x + 40 * Math.cos(angle);
+          const elementY = this.touchStartCenter.y + 40 * Math.sin(angle);
+
+          // Update the position of the element
+          circle.style.left = elementX + "px";
+          circle.style.top = elementY + "px";
+        } else {
+          circle.style.top = smallCircle.y + "px";
+          circle.style.left = smallCircle.x + "px";
+        }
+
+        // if (d <= 35) {
+        //   circle.style.top = e.changedTouches[0].pageY - 25 - 11.5 + "px";
+        //   circle.style.left = e.changedTouches[0].pageX - 25 - 11.5+ "px";
+        // } else {
+        //   circle.style.top = circle.style.top - 35 + "px";
+        //   circle.style.left = circle.style.left - 35 + "px";
+        // }
 
         const endX = e.changedTouches[0].screenX;
         const endY = e.changedTouches[0].screenY;
