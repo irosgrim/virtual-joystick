@@ -1,5 +1,5 @@
 const circle = document.getElementById("circle");
-// const debug = document.getElementById("debug");
+const debug = document.getElementById("debug");
 
 
 const distance = function (p1, p2) {
